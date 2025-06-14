@@ -1,1 +1,540 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Folgas por Turma</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+        .notification {
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 5px;
+            display: none;
+            font-size: 14px;
+        }
+        .folga {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .trabalho {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .calendar {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .calendar th {
+            background-color: #f2f2f2;
+            padding: 8px;
+            text-align: center;
+            font-size: 12px;
+        }
+        .calendar td {
+            border: 1px solid #ddd;
+            padding: 5px;
+            height: 60px;
+            vertical-align: top;
+            font-size: 12px;
+        }
+        .today {
+            background-color: #e6f7ff;
+            font-weight: bold;
+        }
+        .work-day {
+            background-color: #ffebee;
+        }
+        .off-day {
+            background-color: #e8f5e9;
+        }
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .day-number {
+            font-weight: bold;
+            margin-bottom: 2px;
+            font-size: 14px;
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border: 1px solid #ddd;
+        }
+        #turma {
+            padding: 8px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        h1 {
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
+        h2 {
+            font-size: 18px;
+        }
+        .notification-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 10px 0;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .notification-btn:hover {
+            background-color: #45a049;
+        }
+        .notification-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        /* Melhorias específicas para mobile */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .calendar td {
+                height: 50px;
+                padding: 3px;
+            }
+            .day-number {
+                font-size: 12px;
+            }
+            .calendar td span {
+                font-size: 10px;
+                display: block;
+                margin-top: 2px;
+            }
+            .notification {
+                padding: 10px;
+                font-size: 13px;
+            }
+            .notification-btn {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+        }
+
+        /* Ajustes para telas muito pequenas */
+        @media (max-width: 400px) {
+            .calendar td {
+                height: 45px;
+            }
+            .day-number {
+                font-size: 11px;
+            }
+            .calendar td span {
+                font-size: 9px;
+            }
+            h1 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Folgas por Turma</h1>
+    
+    <div>
+        <label for="turma">Selecione sua turma:</label>
+        <select id="turma" required>
+            <option value="">-- Escolha uma turma --</option>
+            <option value="A">Turma A</option>
+            <option value="B">Turma B</option>
+            <option value="C">Turma C</option>
+            <option value="D">Turma D</option>
+        </select>
+    </div>
+    
+    <div id="notification" class="notification"></div>
+    
+    <button id="enableNotifications" class="notification-btn">Ativar Notificações</button>
+    <div id="notificationStatus" style="font-size: 14px; margin-bottom: 15px;"></div>
+    
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #e6f7ff;"></div>
+            <span>Hoje</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #ffebee;"></div>
+            <span>Trabalho</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #e8f5e9;"></div>
+            <span>Folga</span>
+        </div>
+    </div>
+    
+    <div class="calendar-header">
+        <h2>JUNHO 2025</h2>
+    </div>
+    
+    <table class="calendar" id="calendar">
+        <thead>
+            <tr>
+                <th>Dom</th>
+                <th>Seg</th>
+                <th>Ter</th>
+                <th>Qua</th>
+                <th>Qui</th>
+                <th>Sex</th>
+                <th>Sáb</th>
+            </tr>
+        </thead>
+        <tbody id="calendarBody"></tbody>
+    </table>
+    
+    <script>
+
+        // Verifica se o navegador suporta notificações
+if ('Notification' in window) {
+  // Função para solicitar permissão e configurar notificações
+  function requestNotificationPermission() {
+    // Verifica se já temos permissão
+    if (Notification.permission === 'granted') {
+      // Se já tiver permissão, pode enviar notificação imediatamente
+      showSampleNotification();
+    } else if (Notification.permission !== 'denied') {
+      // Solicita permissão ao usuário
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          showSampleNotification();
+        }
+      });
+    }
+  }
+
+  // Função para mostrar uma notificação de exemplo
+  function showSampleNotification() {
+    // Verifica se é um dispositivo móvel
+    if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      new Notification('Notificações Ativadas', {
+        body: 'Você agora receberá notificações do nosso site!',
+        icon: '/icon.png' // Substitua pelo caminho do seu ícone
+      });
+    }
+  }
+
+  // Verifica se é um dispositivo móvel antes de solicitar permissão
+  if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    // Espera o usuário interagir com a página antes de solicitar permissão
+    document.addEventListener('DOMContentLoaded', () => {
+      // Pode adicionar um botão ou solicitar após algum evento do usuário
+      setTimeout(requestNotificationPermission, 3000); // Solicita após 3 segundos
+    });
+  }
+
+  // Função para enviar notificações posteriormente
+  window.sendPushNotification = function(title, options) {
+    if (Notification.permission === 'granted') {
+      new Notification(title, options);
+    } else {
+      console.warn('Permissão para notificações não concedida.');
+    }
+  };
+} else {
+  console.warn('Este navegador não suporta notificações push.');
+}
+
+        sendPushNotification('Título da Notificação', {
+  body: 'Corpo da mensagem',
+  });
+        // Folgas fixas para cada turma em junho de 2025
+        const folgasPorTurma = {
+            'A': [17, 18, 25, 26],
+            'B': [15, 19, 20, 27, 28],
+            'C': [13, 14, 21, 22, 29, 30], // Adicionados dias 13 e 14 de junho
+            'D': [12, 16, 23, 24]
+        };
+        
+        // Mês de junho de 2025 (0 = janeiro, 5 = junho)
+        const mesJunho2025 = 5;
+        const ano2025 = 2025;
+        
+        // Variável para armazenar a turma selecionada
+        let turmaSelecionada = '';
+        
+        // Carrega dados salvos ao iniciar e renderiza o calendário
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSavedData();
+            renderCalendar();
+            checkNotificationPermission();
+            
+            // Event listener para o menu suspenso (atualiza automaticamente)
+            document.getElementById('turma').addEventListener('change', function() {
+                turmaSelecionada = this.value;
+                saveData();
+                verificarFolgas();
+                renderCalendar();
+            });
+            
+            // Event listener para o botão de notificações
+            document.getElementById('enableNotifications').addEventListener('click', requestNotificationPermission);
+        });
+        
+        // Verifica a permissão de notificação
+        function checkNotificationPermission() {
+            if (!('Notification' in window)) {
+                document.getElementById('notificationStatus').textContent = 
+                    'Seu navegador não suporta notificações push.';
+                document.getElementById('enableNotifications').disabled = true;
+                return;
+            }
+            
+            if (Notification.permission === 'granted') {
+                document.getElementById('notificationStatus').textContent = 
+                    'Notificações estão ativadas para este site.';
+                document.getElementById('enableNotifications').disabled = true;
+            } else if (Notification.permission === 'denied') {
+                document.getElementById('notificationStatus').textContent = 
+                    'Notificações foram bloqueadas. Você pode alterar isso nas configurações do seu navegador.';
+                document.getElementById('enableNotifications').disabled = true;
+            } else {
+                document.getElementById('notificationStatus').textContent = 
+                    'Clique no botão para ativar notificações.';
+            }
+        }
+        
+        // Solicita permissão para notificações
+        function requestNotificationPermission() {
+            Notification.requestPermission().then(function(permission) {
+                if (permission === 'granted') {
+                    document.getElementById('notificationStatus').textContent = 
+                        'Notificações ativadas com sucesso! Você receberá avisos sobre suas folgas.';
+                    document.getElementById('enableNotifications').disabled = true;
+                    
+                    // Mostra uma notificação de teste
+                    showNotification('Notificações ativadas', 'Você receberá avisos sobre suas folgas.');
+                    
+                    // Agenda notificações para dias de folga
+                    scheduleFolgaNotifications();
+                } else {
+                    document.getElementById('notificationStatus').textContent = 
+                        'Permissão para notificações não foi concedida.';
+                }
+            });
+        }
+        
+        // Mostra uma notificação push
+        function showNotification(title, body) {
+            if (Notification.permission === 'granted') {
+                const options = {
+                    body: body,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/3652/3652191.png' // Ícone opcional
+                };
+                
+                new Notification(title, options);
+            }
+        }
+        
+        // Agenda notificações para os dias de folga
+        function scheduleFolgaNotifications() {
+            if (!turmaSelecionada || Notification.permission !== 'granted') return;
+            
+            const folgas = folgasPorTurma[turmaSelecionada] || [];
+            const hoje = new Date();
+            const mesAtual = hoje.getMonth();
+            const anoAtual = hoje.getFullYear();
+            
+            // Só agenda se estivermos em junho de 2025
+            if (mesAtual !== mesJunho2025 || anoAtual !== ano2025) return;
+            
+            const diaAtual = hoje.getDate();
+            
+            // Verifica se hoje é folga
+            if (folgas.includes(diaAtual)) {
+                showNotification('Lembrete de Folga', `Hoje (${diaAtual}/06/2025) é seu dia de folga! Aproveite para descansar.`);
+            }
+            
+            // Agenda notificação para o próximo dia de folga
+            const proximasFolgas = folgas.filter(dia => dia > diaAtual).sort((a, b) => a - b);
+            if (proximasFolgas.length > 0) {
+                const proximaFolga = proximasFolgas[0];
+                const diasRestantes = proximaFolga - diaAtual;
+                
+                if (diasRestantes === 1) {
+                    showNotification('Folga Amanhã', 'Amanhã é seu dia de folga! Prepare-se para descansar.');
+                } else if (diasRestantes <= 3) {
+                    showNotification('Folga Próxima', `Faltam apenas ${diasRestantes} dias para sua próxima folga (dia ${proximaFolga}/06).`);
+                }
+            }
+        }
+        
+        // Armazenamento local
+        function saveData() {
+            const data = {
+                turma: turmaSelecionada,
+                lastUpdate: new Date().toISOString()
+            };
+            localStorage.setItem('folgaTurmaData', JSON.stringify(data));
+        }
+        
+        function loadSavedData() {
+            const savedData = localStorage.getItem('folgaTurmaData');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                turmaSelecionada = data.turma;
+                
+                // Preenche o menu suspenso com os dados salvos
+                if (turmaSelecionada) {
+                    document.getElementById('turma').value = turmaSelecionada;
+                    // Dispara o evento change para atualizar automaticamente
+                    document.getElementById('turma').dispatchEvent(new Event('change'));
+                }
+            }
+        }
+        
+        // Renderização do calendário de junho de 2025
+        function renderCalendar() {
+            const today = new Date();
+            const firstDayOfMonth = new Date(ano2025, mesJunho2025, 1);
+            const lastDayOfMonth = new Date(ano2025, mesJunho2025 + 1, 0);
+            const daysInMonth = lastDayOfMonth.getDate();
+            
+            // Calcula o dia da semana do primeiro dia do mês (0 = Domingo, 6 = Sábado)
+            const startingDay = firstDayOfMonth.getDay();
+            
+            let calendarBody = document.getElementById('calendarBody');
+            calendarBody.innerHTML = '';
+            
+            let date = 1;
+            for (let i = 0; i < 6; i++) {
+                // Cria uma linha para cada semana
+                const row = document.createElement('tr');
+                
+                // Cria células para cada dia da semana
+                for (let j = 0; j < 7; j++) {
+                    const cell = document.createElement('td');
+                    
+                    if (i === 0 && j < startingDay) {
+                        // Células vazias antes do primeiro dia do mês
+                        cell.textContent = '';
+                    } else if (date > daysInMonth) {
+                        // Células vazias após o último dia do mês
+                        cell.textContent = '';
+                    } else {
+                        // Preenche com o dia do mês
+                        const dayNumber = document.createElement('div');
+                        dayNumber.className = 'day-number';
+                        dayNumber.textContent = date;
+                        cell.appendChild(dayNumber);
+                        
+                        // Verifica se é dia de folga para a turma selecionada
+                        if (turmaSelecionada) {
+                            const folgas = folgasPorTurma[turmaSelecionada] || [];
+                            const isFolga = folgas.includes(date);
+                            
+                            if (isFolga) {
+                                cell.classList.add('off-day');
+                                const span = document.createElement('span');
+                                span.textContent = 'Folga';
+                                cell.appendChild(span);
+                            } else {
+                                cell.classList.add('work-day');
+                                const span = document.createElement('span');
+                                span.textContent = 'Trabalho';
+                                cell.appendChild(span);
+                            }
+                        }
+                        
+                        // Destaca o dia atual (se for junho de 2025)
+                        if (date === today.getDate() && 
+                            mesJunho2025 === today.getMonth() && 
+                            ano2025 === today.getFullYear()) {
+                            cell.classList.add('today');
+                        }
+                        
+                        date++;
+                    }
+                    
+                    row.appendChild(cell);
+                }
+                
+                calendarBody.appendChild(row);
+                
+                // Para de criar linhas se já preencheu todos os dias
+                if (date > daysInMonth) {
+                    break;
+                }
+            }
+        }
+        
+        // Função para verificar se hoje é folga
+        function verificarFolgas() {
+            if (!turmaSelecionada) {
+                document.getElementById('notification').style.display = 'none';
+                return;
+            }
+            
+            const hoje = new Date();
+            const diaAtual = hoje.getDate();
+            const mesAtual = hoje.getMonth();
+            const anoAtual = hoje.getFullYear();
+            
+            // Só verifica se estivermos em junho de 2025
+            if (mesAtual !== mesJunho2025 || anoAtual !== ano2025) {
+                document.getElementById('notification').style.display = 'block';
+                document.getElementById('notification').className = 'notification trabalho';
+                document.getElementById('notification').innerHTML = 
+                    '<strong>Fora do período de junho/2025</strong><br>' +
+                    'Este sistema mostra apenas as folgas do mês de junho de 2025.';
+                return;
+            }
+            
+            const folgas = folgasPorTurma[turmaSelecionada] || [];
+            const ehFolga = folgas.includes(diaAtual);
+            
+            const notification = document.getElementById('notification');
+            notification.style.display = 'block';
+            
+            if (ehFolga) {
+                notification.className = 'notification folga';
+                notification.innerHTML = `<strong>Hoje (${diaAtual}/06/2025) é seu dia de folga!</strong> Aproveite para descansar.`;
+            } else {
+                notification.className = 'notification trabalho';
+                notification.innerHTML = `<strong>Hoje (${diaAtual}/06/2025) é dia de trabalho.</strong>`;
+                
+                // Mostra quando será a próxima folga
+                const proximasFolgas = folgas.filter(dia => dia > diaAtual).sort((a, b) => a - b);
+                if (proximasFolgas.length > 0) {
+                    notification.innerHTML += `<br>Sua próxima folga será dia ${proximasFolgas[0]}/06/2025.`;
+                } else {
+                    notification.innerHTML += '<br>Este mês não há mais folgas para sua turma.';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
 
